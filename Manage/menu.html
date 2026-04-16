@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin</title>
+<style>
+  :root {
+    --brand: #0b7a3b;
+    --bg: #f6f8f6;
+    --card: #ffffff;
+    --ink: #1a1f1a;
+    --muted: #5f6b5f;
+    --line: #e2e8e2;
+    --err: #c0392b;
+    --ok: #0b7a3b;
+    --warn: #b8761a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, Roboto, sans-serif; }
+  .app { max-width: 960px; margin: 0 auto; padding: 0 14px 40px; }
+  header {
+    background: var(--brand); color: #fff; margin: 0 -14px 14px;
+    padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  header h1 { margin: 0; font-size: 18px; }
+  header .sub { opacity: .85; font-size: 12px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+  .tabs button {
+    padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: white; color: var(--ink); cursor: pointer; font-size: 14px;
+  }
+  .tabs button.active { background: var(--brand); color: white; border-color: var(--brand); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px; margin: 10px 0; }
+  h2 { margin: 0 0 10px; font-size: 18px; }
+  h3 { margin: 16px 0 8px; font-size: 15px; color: var(--muted); }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  input, select, textarea, button {
+    font: inherit; width: 100%; padding: 9px 11px;
+    border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--ink);
+  }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > * { flex: 1 1 160px; }
+  .row > button { flex: 0 0 auto; width: auto; }
+  button.primary { background: var(--brand); color: white; border-color: var(--brand); font-weight: 600; }
+  button.danger  { background: #fdecea; color: var(--err); border-color: #f5c6c2; }
+  button.ghost   { background: white; }
+  .muted  { color: var(--muted); font-size: 13px; }
+  .error   { background: #fdecea; border: 1px solid #f5c6c2; color: var(--err); padding: 9px; border-radius: 9px; margin: 8px 0; font-size: 13px; }
+  .success { background: #e9f7ef; border: 1px solid #b7e4c7; color: var(--ok);  padding: 9px; border-radius: 9px; margin: 8px 0; font-size: 13px; }
+  .hidden  { display: none !important; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  th { font-weight: 600; color: var(--muted); }
+  tr.new { background: #fff7e6; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+    background: #eef2ee; color: var(--muted); }
+  .pill.paid      { background: #e9f7ef; color: var(--ok); }
+  .pill.cancelled { background: #fdecea; color: var(--err); }
+  .pill.new       { background: #fff1c4; color: var(--warn); }
+
+  .thumb { width: 46px; height: 46px; object-fit: cover; border-radius: 6px; background: #eef2ee; }
+  .imgcell { display: flex; align-items: center; gap: 8px; }
+
+  .prodgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .prodcard { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: white; }
+  .prodcard .img { aspect-ratio: 1 / 1; background: #eef2ee; border-radius: 8px; overflow: hidden; }
+  .prodcard .img img { width: 100%; height: 100%; object-fit: cover; }
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1 id="adminTitle">Admin</h1>
+  <div class="sub" id="adminSub">Manage products, orders and customers.</div>
+</header>
+
+<!-- ============ AUTH ============ -->
+<section id="authCard" class="card">
+  <h2>Admin sign in</h2>
+  <p class="muted">This console talks to the Worker with a bearer token and an admin PIN.
+    The token is stored only in this browser, never sent back to the server.</p>
+  <div id="authErr" class="error hidden"></div>
+  <label>API base URL</label>
+  <input id="apiBase" placeholder="https://generic-order-api.YOUR-SUBDOMAIN.workers.dev">
+  <div style="height:6px"></div>
+  <label>Admin API token</label>
+  <input id="apiToken" type="password" autocomplete="off">
+  <div style="height:6px"></div>
+  <label>Admin PIN</label>
+  <input id="apiPin" type="password" inputmode="numeric" autocomplete="off">
+  <div style="height:10px"></div>
+  <div class="row">
+    <button class="primary" onclick="adminSignIn()">Sign in</button>
+    <button class="ghost"   onclick="adminSignOut()">Clear</button>
+  </div>
+</section>
+
+<!-- ============ TABS ============ -->
+<nav id="tabsBar" class="tabs hidden">
+  <button data-tab="orders"     onclick="showTab('orders')">Orders</button>
+  <button data-tab="products"   onclick="showTab('products')">Products</button>
+  <button data-tab="categories" onclick="showTab('categories')">Categories</button>
+  <button data-tab="customers"  onclick="showTab('customers')">Customers</button>
+  <button data-tab="settings"   onclick="showTab('settings')">Settings</button>
+</nav>
+
+<!-- ============ ORDERS ============ -->
+<section id="tab-orders" class="hidden">
+  <div class="card">
+    <div class="row">
+      <h2 style="flex:1;margin:0">Orders</h2>
+      <select id="ordStatus" onchange="loadAdminOrders()">
+        <option value="">All statuses</option>
+        <option value="new">New</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="delivered">Delivered</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <button class="ghost" onclick="loadAdminOrders()">Refresh</button>
+      <button class="primary" onclick="notifyAllNew()">Notify All New</button>
+    </div>
+    <div id="ordErr" class="error hidden"></div>
+    <div id="ordersTable"></div>
+  </div>
+</section>
+
+<!-- ============ PRODUCTS ============ -->
+<section id="tab-products" class="hidden">
+  <div class="card">
+    <div class="row">
+      <h2 style="flex:1;margin:0">Products</h2>
+      <button class="primary" onclick="editProduct(null)">+ New product</button>
+    </div>
+    <div id="prodErr" class="error hidden"></div>
+    <div id="productList" class="prodgrid"></div>
+  </div>
+
+  <div class="card hidden" id="prodForm">
+    <h2 id="prodFormTitle">Edit product</h2>
+    <div class="row">
+      <div>
+        <label>Name</label>
+        <input id="pfName">
+      </div>
+      <div>
+        <label>Category</label>
+        <select id="pfCategory"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Unit (kg, bunch, pack…)</label>
+        <input id="pfUnit" value="each">
+      </div>
+      <div>
+        <label>Price</label>
+        <input id="pfPrice" type="number" step="0.01" value="0">
+      </div>
+      <div>
+        <label>Sort</label>
+        <input id="pfSort" type="number" value="100">
+      </div>
+    </div>
+    <label>Description</label>
+    <textarea id="pfDesc"></textarea>
+    <div class="row">
+      <label style="flex:0 0 100%;">
+        <input id="pfInStock" type="checkbox" style="width:auto" checked> In stock
+      </label>
+    </div>
+    <h3>Image</h3>
+    <div class="row">
+      <div>
+        <img id="pfImg" class="thumb" style="width:100%;max-width:220px;aspect-ratio:1/1;height:auto" src="" alt="">
+        <div class="muted" id="pfImgKey"></div>
+      </div>
+      <div>
+        <label>Upload image (JPG/PNG, max 5MB)</label>
+        <input id="pfFile" type="file" accept="image/*">
+        <div style="height:6px"></div>
+        <label>Or paste image URL</label>
+        <input id="pfImgUrl" placeholder="https://…">
+        <div style="height:6px"></div>
+        <button class="ghost" onclick="uploadProductImage()">Upload</button>
+        <button class="ghost" onclick="clearProductImage()">Remove image</button>
+      </div>
+    </div>
+    <div id="pfErr" class="error hidden"></div>
+    <div id="pfOk"  class="success hidden"></div>
+    <div style="height:10px"></div>
+    <div class="row">
+      <button class="primary" onclick="saveProduct()">Save</button>
+      <button class="ghost"   onclick="cancelProductEdit()">Cancel</button>
+      <button class="danger"  id="pfDelete" onclick="deleteProduct()">Delete</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CATEGORIES ============ -->
+<section id="tab-categories" class="hidden">
+  <div class="card">
+    <div class="row">
+      <h2 style="flex:1;margin:0">Categories</h2>
+      <button class="primary" onclick="editCategory(null)">+ New category</button>
+    </div>
+    <div id="catErr" class="error hidden"></div>
+    <table><thead><tr><th>Name</th><th>Emoji</th><th>Sort</th><th></th></tr></thead>
+      <tbody id="catRows"></tbody>
+    </table>
+  </div>
+
+  <div class="card hidden" id="catForm">
+    <h2 id="catFormTitle">Edit category</h2>
+    <div class="row">
+      <div><label>Name</label><input id="cfName"></div>
+      <div><label>Emoji</label><input id="cfEmoji" maxlength="4"></div>
+      <div><label>Sort</label><input id="cfSort" type="number" value="100"></div>
+    </div>
+    <div id="cfErr" class="error hidden"></div>
+    <div style="height:10px"></div>
+    <div class="row">
+      <button class="primary" onclick="saveCategory()">Save</button>
+      <button class="ghost"   onclick="cancelCategoryEdit()">Cancel</button>
+      <button class="danger"  id="cfDelete" onclick="deleteCategory()">Delete</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CUSTOMERS ============ -->
+<section id="tab-customers" class="hidden">
+  <div class="card">
+    <div class="row">
+      <h2 style="flex:1;margin:0">Customers</h2>
+      <button class="primary" onclick="editCustomer(null)">+ New customer</button>
+    </div>
+    <div id="custErr" class="error hidden"></div>
+    <table>
+      <thead><tr><th>Name</th><th>Phone</th><th>PIN</th><th>Reset code</th><th></th></tr></thead>
+      <tbody id="custRows"></tbody>
+    </table>
+    <p class="muted" style="margin-top:10px">
+      Admins never see or set PINs. To let a customer pick their own PIN, issue a reset code;
+      they enter the code in the customer app and choose a new PIN.
+    </p>
+  </div>
+
+  <div class="card hidden" id="custForm">
+    <h2 id="custFormTitle">Edit customer</h2>
+    <div class="row">
+      <div><label>Name</label><input id="xfName"></div>
+      <div><label>Phone</label><input id="xfPhone"></div>
+    </div>
+    <label>Notes</label>
+    <textarea id="xfNotes"></textarea>
+    <div id="xfErr" class="error hidden"></div>
+    <div style="height:10px"></div>
+    <div class="row">
+      <button class="primary" onclick="saveCustomer()">Save</button>
+      <button class="ghost"   onclick="cancelCustomerEdit()">Cancel</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="tab-settings" class="hidden">
+  <div class="card">
+    <h2>Store settings</h2>
+    <div class="row">
+      <div><label>Store name</label><input id="sfStore"></div>
+      <div><label>Store tagline</label><input id="sfTagline"></div>
+    </div>
+    <div class="row">
+      <div><label>Currency symbol</label><input id="sfCurrency"></div>
+      <div><label>Admin phone (WhatsApp)</label><input id="sfAdminPhone"></div>
+    </div>
+    <div class="row">
+      <div><label>UPI ID</label><input id="sfUpi"></div>
+      <div><label>UPI payee name</label><input id="sfPayee"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Images public base URL (optional)</label>
+        <input id="sfImagesBase" placeholder="https://images.example.com">
+        <div class="muted">Leave blank to serve images through the Worker’s /img/ route.</div>
+      </div>
+      <div>
+        <label>Ordering open</label>
+        <select id="sfOpen"><option value="1">Open</option><option value="0">Closed</option></select>
+      </div>
+    </div>
+    <div id="sErr" class="error hidden"></div>
+    <div id="sOk"  class="success hidden"></div>
+    <div style="height:10px"></div>
+    <button class="primary" onclick="saveSettings()">Save settings</button>
+  </div>
+
+  <div class="card">
+    <h2>Change admin PIN</h2>
+    <div class="row">
+      <div><label>New admin PIN</label><input id="sfNewPin" type="password" inputmode="numeric"></div>
+      <div><label>Confirm</label><input id="sfNewPin2" type="password" inputmode="numeric"></div>
+    </div>
+    <div id="sPinErr" class="error hidden"></div>
+    <div id="sPinOk"  class="success hidden"></div>
+    <div style="height:10px"></div>
+    <button class="primary" onclick="changeAdminPin()">Change admin PIN</button>
+  </div>
+
+  <div class="card">
+    <h2>Session</h2>
+    <p class="muted">Signed in to <code id="sfApi"></code></p>
+    <button class="ghost" onclick="adminSignOut()">Sign out</button>
+  </div>
+</section>
+
+</div>
+<script>
+/* ---------------------------------------------------------------
+ * Admin console
+ * ------------------------------------------------------------- */
+const LS_KEY = 'adminSession';
+const st = {
+  api: '', token: '', pin: '',
+  products: [], categories: [], customers: [], orders: [], settings: {},
+  editingProduct: null, editingCategory: null, editingCustomer: null
+};
+
+function $(id) { return document.getElementById(id); }
+function show(id) { $(id).classList.remove('hidden'); }
+function hide(id) { $(id).classList.add('hidden'); }
+
+/* ---------- fetch ---------- */
+async function apiGet(path, params = {}, auth) {
+  const q = new URLSearchParams(params).toString();
+  const headers = {};
+  if (auth) {
+    headers['Authorization'] = 'Bearer ' + st.token;
+    headers['X-Admin-Pin'] = st.pin;
+  }
+  const r = await fetch(st.api + path + (q ? '?' + q : ''), { method: 'GET', headers });
+  const j = await r.json().catch(() => ({ ok: false, error: 'Bad JSON' }));
+  if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+async function apiPost(path, body, auth, raw) {
+  const headers = raw ? {} : { 'Content-Type': 'application/json' };
+  if (auth) {
+    headers['Authorization'] = 'Bearer ' + st.token;
+    headers['X-Admin-Pin']   = st.pin;
+  }
+  const r = await fetch(st.api + path, {
+    method: 'POST', headers, body: raw ? raw : JSON.stringify(body || {})
+  });
+  const j = await r.json().catch(() => ({ ok: false, error: 'Bad JSON' }));
+  if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+
+/* ---------- auth ---------- */
+function restoreSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (s && s.api && s.token && s.pin) {
+      st.api = s.api; st.token = s.token; st.pin = s.pin;
+      $('apiBase').value = s.api; $('apiToken').value = s.token; $('apiPin').value = s.pin;
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+async function adminSignIn() {
+  hide('authErr');
+  st.api   = $('apiBase').value.trim().replace(/\/+$/, '');
+  st.token = $('apiToken').value.trim();
+  st.pin   = $('apiPin').value.trim();
+  if (!st.api || !st.token || !st.pin) {
+    $('authErr').textContent = 'Enter all fields.'; show('authErr'); return;
+  }
+  try {
+    await apiGet('/api/admin/orders', { limit: 1 }, true);
+    localStorage.setItem(LS_KEY, JSON.stringify({ api: st.api, token: st.token, pin: st.pin }));
+    hide('authCard'); show('tabsBar');
+    $('sfApi').textContent = st.api;
+    await loadPublicSettings();
+    await Promise.all([loadCategories(), loadProducts(), loadCustomers()]);
+    showTab('orders');
+  } catch (e) {
+    $('authErr').textContent = 'Auth failed: ' + e.message; show('authErr');
+  }
+}
+
+function adminSignOut() {
+  localStorage.removeItem(LS_KEY);
+  st.api = st.token = st.pin = '';
+  $('apiBase').value = $('apiToken').value = $('apiPin').value = '';
+  hide('tabsBar');
+  for (const el of document.querySelectorAll('section[id^="tab-"]')) el.classList.add('hidden');
+  show('authCard');
+}
+
+/* ---------- tabs ---------- */
+function showTab(name) {
+  for (const btn of document.querySelectorAll('#tabsBar button'))
+    btn.classList.toggle('active', btn.dataset.tab === name);
+  for (const el of document.querySelectorAll('section[id^="tab-"]')) el.classList.add('hidden');
+  show('tab-' + name);
+  if (name === 'orders')     loadAdminOrders();
+  if (name === 'products')   renderProducts();
+  if (name === 'categories') renderCategories();
+  if (name === 'customers')  renderCustomers();
+  if (name === 'settings')   renderSettings();
+}
+
+/* ---------- settings ---------- */
+async function loadPublicSettings() {
+  try { const j = await apiGet('/api/settings'); st.settings = j.settings || {}; }
+  catch (_) { st.settings = {}; }
+  $('adminTitle').textContent = (st.settings.store_name || 'Admin');
+}
+
+function renderSettings() {
+  $('sfStore').value        = st.settings.store_name || '';
+  $('sfTagline').value      = st.settings.store_tagline || '';
+  $('sfCurrency').value     = st.settings.currency_symbol || '₹';
+  $('sfAdminPhone').value   = st.settings.admin_phone || '';
+  $('sfUpi').value          = st.settings.upi_id || '';
+  $('sfPayee').value        = st.settings.upi_payee_name || '';
+  $('sfImagesBase').value   = st.settings.images_public_base || '';
+  $('sfOpen').value         = st.settings.ordering_open === '0' ? '0' : '1';
+}
+
+async function saveSettings() {
+  hide('sErr'); hide('sOk');
+  const settings = {
+    store_name:          $('sfStore').value,
+    store_tagline:       $('sfTagline').value,
+    currency_symbol:     $('sfCurrency').value || '₹',
+    admin_phone:         $('sfAdminPhone').value,
+    upi_id:              $('sfUpi').value,
+    upi_payee_name:      $('sfPayee').value,
+    images_public_base:  $('sfImagesBase').value,
+    ordering_open:       $('sfOpen').value
+  };
+  try {
+    await apiPost('/api/admin/settings', { settings }, true);
+    await loadPublicSettings(); renderSettings();
+    $('sOk').textContent = 'Settings saved.'; show('sOk');
+  } catch (e) { $('sErr').textContent = e.message; show('sErr'); }
+}
+
+async function changeAdminPin() {
+  hide('sPinErr'); hide('sPinOk');
+  const a = $('sfNewPin').value.trim(), b = $('sfNewPin2').value.trim();
+  if (!a || a.length < 4)  { $('sPinErr').textContent = 'PIN must be at least 4 chars.'; show('sPinErr'); return; }
+  if (a !== b)             { $('sPinErr').textContent = 'PINs do not match.'; show('sPinErr'); return; }
+  try {
+    await apiPost('/api/admin/admin-pin', { new_pin: a }, true);
+    st.pin = a;
+    localStorage.setItem(LS_KEY, JSON.stringify({ api: st.api, token: st.token, pin: st.pin }));
+    $('apiPin').value = a;
+    $('sfNewPin').value = $('sfNewPin2').value = '';
+    $('sPinOk').textContent = 'Admin PIN updated.'; show('sPinOk');
+  } catch (e) { $('sPinErr').textContent = e.message; show('sPinErr'); }
+}
+
+/* ---------- orders ---------- */
+async function loadAdminOrders() {
+  hide('ordErr');
+  const box = $('ordersTable');
+  box.innerHTML = '<p class="muted">Loading…</p>';
+  try {
+    const j = await apiGet('/api/admin/orders', { status: $('ordStatus').value, limit: 300 }, true);
+    st.orders = j.orders || [];
+    if (!st.orders.length) { box.innerHTML = '<p class="muted">No orders.</p>'; return; }
+    let h = `<table><thead><tr>
+      <th>When</th><th>Code</th><th>Customer</th><th>Total</th>
+      <th>Status</th><th>Paid</th><th>Notified</th><th>Items</th><th></th>
+    </tr></thead><tbody>`;
+    for (const o of st.orders) {
+      const rowCls = (!o.notified && o.order_status !== 'cancelled') ? 'new' : '';
+      const items = (o.items || []).map(i => `${escHtml(i.product_name)}×${i.quantity}`).join(', ');
+      h += `<tr class="${rowCls}">
+        <td class="muted">${escHtml(fmtDate(o.created_at))}</td>
+        <td>${escHtml(o.order_code)}</td>
+        <td>${escHtml(o.customer_name || '')}<br><span class="muted">${escHtml(o.customer_phone)}</span></td>
+        <td>${escHtml(fmtMoney(o.total_amount))}</td>
+        <td><span class="pill ${o.order_status}">${escHtml(o.order_status)}</span></td>
+        <td><span class="pill ${o.payment_status}">${escHtml(o.payment_status)}</span></td>
+        <td>${o.notified ? '✓' : '—'}</td>
+        <td class="muted">${escHtml(items)}</td>
+        <td class="row" style="gap:4px">
+          <button class="ghost" onclick="waNotify(${o.id})">WhatsApp</button>
+          <select onchange="setStatus(${o.id}, this.value)">
+            <option value="">Status…</option>
+            <option value="new">new</option>
+            <option value="confirmed">confirmed</option>
+            <option value="delivered">delivered</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+          <button class="ghost" onclick="markPaid(${o.id})">Paid</button>
+        </td>
+      </tr>`;
+    }
+    h += '</tbody></table>';
+    box.innerHTML = h;
+  } catch (e) {
+    box.innerHTML = '';
+    $('ordErr').textContent = e.message; show('ordErr');
+  }
+}
+
+function waNotify(id) {
+  const o = st.orders.find(x => x.id === id); if (!o) return;
+  const phone = (o.customer_phone || '').replace(/[^\d]/g, '');
+  const lines = (o.items || []).map(i => `• ${i.product_name} — ${i.quantity} ${i.unit || ''}`);
+  const msg = `Hi ${o.customer_name || ''},\n` +
+              `Your order ${o.order_code} is received.\n\n` +
+              lines.join('\n') + `\n\nTotal: ${fmtMoney(o.total_amount)}`;
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+  // mark notified
+  apiPost('/api/admin/notify', { order_ids: [id] }, true).then(loadAdminOrders).catch(()=>{});
+}
+
+async function notifyAllNew() {
+  const targets = st.orders.filter(o => !o.notified && o.order_status !== 'cancelled');
+  if (!targets.length) return alert('Nothing new to notify.');
+  // group by customer
+  const byPhone = {};
+  for (const o of targets) (byPhone[o.customer_phone] ||= []).push(o);
+  for (const [phone, orders] of Object.entries(byPhone)) {
+    const name = orders[0].customer_name || '';
+    const lines = orders.flatMap(o =>
+      [`Order ${o.order_code} · ${fmtMoney(o.total_amount)}`]
+        .concat((o.items || []).map(i => `  • ${i.product_name} — ${i.quantity} ${i.unit || ''}`))
+    );
+    const msg = `Hi ${name},\n` + lines.join('\n');
+    const url = `https://wa.me/${phone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(msg)}`;
+    if (!confirm(`Open WhatsApp for ${name || phone} with ${orders.length} order(s)?`)) continue;
+    window.open(url, '_blank');
+    await apiPost('/api/admin/notify', { order_ids: orders.map(o => o.id) }, true).catch(()=>{});
+  }
+  loadAdminOrders();
+}
+
+async function setStatus(id, status) {
+  if (!status) return;
+  try {
+    await apiPost('/api/admin/order-status', { order_id: id, order_status: status }, true);
+    loadAdminOrders();
+  } catch (e) { alert(e.message); }
+}
+
+async function markPaid(id) {
+  try {
+    await apiPost('/api/admin/order-status', { order_id: id, payment_status: 'paid' }, true);
+    loadAdminOrders();
+  } catch (e) { alert(e.message); }
+}
+
+/* ---------- products ---------- */
+async function loadProducts() {
+  const j = await apiGet('/api/admin/products', {}, true);
+  st.products = j.products || [];
+}
+
+function renderProducts() {
+  hide('prodForm');
+  const box = $('productList'); box.innerHTML = '';
+  if (!st.products.length) { box.innerHTML = '<p class="muted">No products yet.</p>'; return; }
+  const catName = id => (st.categories.find(c => c.id === id) || {}).name || '';
+  for (const p of st.products) {
+    const card = document.createElement('div'); card.className = 'prodcard';
+    card.innerHTML = `
+      <div class="img">${p.image_url ? `<img src="${escAttr(p.image_url)}" alt="">` : ''}</div>
+      <div style="margin-top:8px"><b>${escHtml(p.name)}</b></div>
+      <div class="muted">${escHtml(catName(p.category_id))} · ${escHtml(fmtMoney(p.price))} / ${escHtml(p.unit || '')}</div>
+      <div class="muted">${p.in_stock ? 'In stock' : '<span style="color:var(--err)">Out of stock</span>'}</div>
+      <div style="height:8px"></div>
+      <button class="ghost" onclick="editProduct(${p.id})">Edit</button>
+    `;
+    box.appendChild(card);
+  }
+}
+
+function editProduct(id) {
+  st.editingProduct = id ? st.products.find(x => x.id === id) : { name: '', unit: 'each', price: 0, in_stock: 1, sort_order: 100 };
+  const p = st.editingProduct;
+  $('prodFormTitle').textContent = id ? 'Edit product' : 'New product';
+  $('pfName').value  = p.name || '';
+  $('pfUnit').value  = p.unit || 'each';
+  $('pfPrice').value = p.price || 0;
+  $('pfSort').value  = p.sort_order || 100;
+  $('pfDesc').value  = p.description || '';
+  $('pfInStock').checked = !!p.in_stock;
+  $('pfImgUrl').value    = p.image_url || '';
+  $('pfImgKey').textContent = p.image_key ? 'Key: ' + p.image_key : '';
+  $('pfImg').src = p.image_url || '';
+  $('pfDelete').classList.toggle('hidden', !id);
+
+  const sel = $('pfCategory'); sel.innerHTML = '';
+  for (const c of st.categories) {
+    const o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
+    if (p.category_id === c.id) o.selected = true;
+    sel.appendChild(o);
+  }
+  show('prodForm');
+  window.scrollTo({ top: $('prodForm').offsetTop - 10, behavior: 'smooth' });
+}
+
+function cancelProductEdit() { st.editingProduct = null; hide('prodForm'); }
+
+async function saveProduct() {
+  hide('pfErr'); hide('pfOk');
+  const p = st.editingProduct || {};
+  const body = {
+    id: p.id,
+    category_id: Number($('pfCategory').value) || null,
+    name: $('pfName').value.trim(),
+    description: $('pfDesc').value.trim(),
+    unit: $('pfUnit').value.trim() || 'each',
+    price: Number($('pfPrice').value || 0),
+    image_key: p.image_key || null,
+    image_url: $('pfImgUrl').value.trim() || null,
+    in_stock: $('pfInStock').checked ? 1 : 0,
+    sort_order: Number($('pfSort').value || 100)
+  };
+  if (!body.name) { $('pfErr').textContent = 'Name required.'; show('pfErr'); return; }
+  try {
+    const j = await apiPost('/api/admin/products', body, true);
+    if (!p.id) p.id = j.id;
+    $('pfOk').textContent = 'Saved.'; show('pfOk');
+    await loadProducts(); renderProducts();
+  } catch (e) { $('pfErr').textContent = e.message; show('pfErr'); }
+}
+
+async function deleteProduct() {
+  const p = st.editingProduct; if (!p || !p.id) return;
+  if (!confirm('Delete product "' + p.name + '"?')) return;
+  try {
+    await apiPost('/api/admin/products/delete', { id: p.id }, true);
+    st.editingProduct = null;
+    await loadProducts(); renderProducts();
+  } catch (e) { $('pfErr').textContent = e.message; show('pfErr'); }
+}
+
+async function uploadProductImage() {
+  hide('pfErr'); hide('pfOk');
+  const f = $('pfFile').files[0];
+  if (!f) { $('pfErr').textContent = 'Pick a file first.'; show('pfErr'); return; }
+  if (f.size > 5 * 1024 * 1024) { $('pfErr').textContent = 'Image >5MB.'; show('pfErr'); return; }
+  const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+  try {
+    const headers = {
+      'Authorization': 'Bearer ' + st.token,
+      'X-Admin-Pin': st.pin,
+      'Content-Type': f.type || 'application/octet-stream'
+    };
+    const idParam = st.editingProduct && st.editingProduct.id ? ('&id=' + st.editingProduct.id) : '';
+    const r = await fetch(st.api + '/api/admin/image-upload?ext=' + encodeURIComponent(ext) + idParam, {
+      method: 'POST', headers, body: f
+    });
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || 'Upload failed');
+    st.editingProduct.image_key = j.image_key;
+    st.editingProduct.image_url = j.image_url;
+    $('pfImg').src = j.image_url;
+    $('pfImgUrl').value = j.image_url;
+    $('pfImgKey').textContent = 'Key: ' + j.image_key;
+    $('pfOk').textContent = 'Uploaded.'; show('pfOk');
+  } catch (e) { $('pfErr').textContent = e.message; show('pfErr'); }
+}
+
+async function clearProductImage() {
+  const p = st.editingProduct; if (!p) return;
+  if (p.image_key) {
+    try { await apiPost('/api/admin/image-delete', { image_key: p.image_key }, true); } catch (_) {}
+  }
+  p.image_key = null; p.image_url = null;
+  $('pfImg').src = ''; $('pfImgUrl').value = ''; $('pfImgKey').textContent = '';
+}
+
+/* ---------- categories ---------- */
+async function loadCategories() {
+  const j = await apiGet('/api/admin/categories', {}, true);
+  st.categories = j.categories || [];
+}
+
+function renderCategories() {
+  hide('catForm');
+  const tbody = $('catRows'); tbody.innerHTML = '';
+  for (const c of st.categories) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escHtml(c.name)}</td><td>${escHtml(c.emoji || '')}</td><td>${c.sort_order}</td>
+      <td><button class="ghost" onclick="editCategory(${c.id})">Edit</button></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function editCategory(id) {
+  st.editingCategory = id ? st.categories.find(c => c.id === id) : { name: '', emoji: '', sort_order: 100 };
+  const c = st.editingCategory;
+  $('catFormTitle').textContent = id ? 'Edit category' : 'New category';
+  $('cfName').value  = c.name || '';
+  $('cfEmoji').value = c.emoji || '';
+  $('cfSort').value  = c.sort_order || 100;
+  $('cfDelete').classList.toggle('hidden', !id);
+  show('catForm');
+}
+function cancelCategoryEdit() { st.editingCategory = null; hide('catForm'); }
+
+async function saveCategory() {
+  hide('cfErr');
+  const c = st.editingCategory || {};
+  const body = { id: c.id, name: $('cfName').value.trim(), emoji: $('cfEmoji').value.trim(), sort_order: Number($('cfSort').value || 100) };
+  if (!body.name) { $('cfErr').textContent = 'Name required.'; show('cfErr'); return; }
+  try {
+    await apiPost('/api/admin/categories', body, true);
+    await loadCategories(); renderCategories();
+  } catch (e) { $('cfErr').textContent = e.message; show('cfErr'); }
+}
+
+async function deleteCategory() {
+  const c = st.editingCategory; if (!c || !c.id) return;
+  if (!confirm('Delete category "' + c.name + '"?')) return;
+  try {
+    await apiPost('/api/admin/categories/delete', { id: c.id }, true);
+    st.editingCategory = null;
+    await loadCategories(); renderCategories();
+  } catch (e) { $('cfErr').textContent = e.message; show('cfErr'); }
+}
+
+/* ---------- customers ---------- */
+async function loadCustomers() {
+  const j = await apiGet('/api/admin/customers', {}, true);
+  st.customers = j.customers || [];
+}
+
+function renderCustomers() {
+  hide('custForm');
+  const tbody = $('custRows'); tbody.innerHTML = '';
+  if (!st.customers.length) { tbody.innerHTML = '<tr><td colspan="5" class="muted">None yet.</td></tr>'; return; }
+  for (const c of st.customers) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escHtml(c.name || '')}</td>
+      <td>${escHtml(c.phone)}</td>
+      <td>${c.has_pin ? '✓ set' : '<span class="muted">not set</span>'}</td>
+      <td>${c.reset_token ? `<code>${escHtml(c.reset_token)}</code><br><span class="muted">exp ${escHtml(c.reset_expires_at || '')}</span>` : ''}</td>
+      <td>
+        <button class="ghost" onclick="editCustomer(${c.id})">Edit</button>
+        <button class="ghost" onclick="issueReset('${escAttr(c.phone)}')">Reset PIN</button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function editCustomer(id) {
+  st.editingCustomer = id ? st.customers.find(x => x.id === id) : { name: '', phone: '', notes: '' };
+  const c = st.editingCustomer;
+  $('custFormTitle').textContent = id ? 'Edit customer' : 'New customer';
+  $('xfName').value  = c.name || '';
+  $('xfPhone').value = c.phone || '';
+  $('xfNotes').value = c.notes || '';
+  show('custForm');
+}
+function cancelCustomerEdit() { st.editingCustomer = null; hide('custForm'); }
+
+async function saveCustomer() {
+  hide('xfErr');
+  const c = st.editingCustomer || {};
+  const body = { id: c.id, phone: $('xfPhone').value.trim(), name: $('xfName').value.trim(), notes: $('xfNotes').value.trim() };
+  if (!body.phone) { $('xfErr').textContent = 'Phone required.'; show('xfErr'); return; }
+  try {
+    await apiPost('/api/admin/customers', body, true);
+    await loadCustomers(); renderCustomers();
+  } catch (e) { $('xfErr').textContent = e.message; show('xfErr'); }
+}
+
+async function issueReset(phone) {
+  if (!confirm('Issue a one-time PIN reset code for ' + phone + '?')) return;
+  try {
+    const j = await apiPost('/api/admin/pin-reset', { phone }, true);
+    alert('Reset code: ' + j.reset_token + '\nExpires: ' + j.expires_at + '\n\nShare this with the customer (e.g., via WhatsApp). They enter it in the customer app and pick a new PIN.');
+    await loadCustomers(); renderCustomers();
+  } catch (e) { alert(e.message); }
+}
+
+/* ---------- helpers ---------- */
+function fmtMoney(n) { return (st.settings.currency_symbol || '₹') + Number(n || 0).toFixed(2); }
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return iso;
+  return d.toLocaleString();
+}
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+function escAttr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* ---------- boot ---------- */
+if (restoreSession()) {
+  // auto-ping
+  adminSignIn();
+}
+</script>
+</body>
+</html>
