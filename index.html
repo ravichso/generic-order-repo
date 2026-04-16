@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b7a3b">
+<title>Order</title>
+<style>
+  :root {
+    --brand: #0b7a3b;
+    --brand-2: #0f9b4a;
+    --bg: #f6f8f6;
+    --card: #ffffff;
+    --ink: #1a1f1a;
+    --muted: #5f6b5f;
+    --line: #e2e8e2;
+    --err: #c0392b;
+    --ok: #0b7a3b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .app { max-width: 640px; margin: 0 auto; padding: 0 14px 110px; }
+  header.app-head {
+    position: sticky; top: 0; background: var(--brand); color: white;
+    margin: 0 -14px 10px; padding: 14px; z-index: 5;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .2px; }
+  header p  { margin: 2px 0 0; font-size: 13px; opacity: .9; }
+
+  .tabs { display: flex; gap: 6px; margin: 8px 0 14px; flex-wrap: wrap; }
+  .tabs button {
+    flex: 1 1 auto; min-width: 90px;
+    background: white; border: 1px solid var(--line); color: var(--ink);
+    padding: 10px 12px; border-radius: 999px; font-size: 15px; cursor: pointer;
+  }
+  .tabs button.active { background: var(--brand); color: white; border-color: var(--brand); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px; margin: 10px 0; }
+  h2 { margin: 0 0 10px; font-size: 18px; }
+  h3 { margin: 14px 0 8px; font-size: 16px; color: var(--muted); }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea, button {
+    font: inherit; width: 100%; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand-2); border-color: var(--brand-2); }
+  textarea { min-height: 60px; resize: vertical; }
+  button.primary {
+    background: var(--brand); color: white; border-color: var(--brand); font-weight: 600;
+  }
+  button.primary:active { background: var(--brand-2); }
+  button.ghost { background: white; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .error { background: #fdecea; border: 1px solid #f5c6c2; color: var(--err);
+    padding: 10px; border-radius: 10px; margin: 8px 0; font-size: 14px; }
+  .success { background: #e9f7ef; border: 1px solid #b7e4c7; color: var(--ok);
+    padding: 10px; border-radius: 10px; margin: 8px 0; font-size: 14px; }
+  .hidden { display: none !important; }
+
+  /* Product grid */
+  .cats { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; }
+  .cats button {
+    flex: 0 0 auto; padding: 8px 14px; font-size: 14px;
+    border-radius: 999px; background: white; border: 1px solid var(--line); color: var(--ink);
+  }
+  .cats button.active { background: var(--brand); color: white; border-color: var(--brand); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 480px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .prod { background: white; border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .prod .img {
+    width: 100%; aspect-ratio: 1 / 1; background: #eef2ee; border-radius: 10px;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    color: #89968a; font-size: 32px;
+  }
+  .prod .img img { width: 100%; height: 100%; object-fit: cover; }
+  .prod .name { font-weight: 600; font-size: 15px; line-height: 1.2; }
+  .prod .price { font-size: 14px; color: var(--muted); }
+  .prod .price b { color: var(--ink); }
+  .prod .oos { font-size: 12px; color: var(--err); }
+  .qty { display: flex; align-items: center; gap: 6px; }
+  .qty button {
+    flex: 0 0 34px; height: 34px; padding: 0; font-size: 20px; line-height: 1;
+    background: white; border: 1px solid var(--line); border-radius: 10px; color: var(--ink);
+  }
+  .qty input { text-align: center; padding: 6px 4px; }
+
+  /* Cart / orders */
+  .cartbar {
+    position: fixed; left: 0; right: 0; bottom: 0; background: white;
+    border-top: 1px solid var(--line); padding: 10px 14px;
+    display: flex; gap: 10px; align-items: center; z-index: 6;
+  }
+  .cartbar .total { flex: 1; font-weight: 600; }
+  .cartbar button { flex: 0 0 auto; width: auto; padding: 10px 16px; }
+
+  .line { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0;
+    border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .line:last-child { border-bottom: none; }
+  .line .n  { flex: 1; }
+  .line .q  { min-width: 60px; text-align: right; color: var(--muted); }
+  .line .p  { min-width: 70px; text-align: right; }
+
+  .status-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 12px; background: #eef2ee; color: var(--muted);
+  }
+  .status-paid { background: #e9f7ef; color: var(--ok); }
+  .status-cancelled { background: #fdecea; color: var(--err); }
+
+  /* UPI buttons */
+  .upi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .upi-grid a {
+    display: block; text-decoration: none; text-align: center;
+    padding: 12px; border-radius: 12px; color: white; font-weight: 600;
+  }
+  .qr-box { display: flex; justify-content: center; padding: 10px; background: white;
+    border: 1px solid var(--line); border-radius: 12px; }
+  .qr-box svg { width: 220px; height: 220px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="app-head">
+  <h1 id="storeName">Order</h1>
+  <p id="storeTagline">Loading…</p>
+</header>
+
+<!-- ================ SIGN-IN ================ -->
+<section id="signIn" class="card">
+  <h2>Sign in</h2>
+  <p class="muted">Enter your registered phone and PIN.</p>
+  <div id="signInError" class="error hidden"></div>
+
+  <label>Phone</label>
+  <input id="inpPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. +919876543210">
+
+  <div style="height:8px"></div>
+  <label>PIN</label>
+  <input id="inpPin" type="password" inputmode="numeric" autocomplete="off" maxlength="16">
+
+  <div style="height:12px"></div>
+  <button class="primary" onclick="doSignIn()">Sign in</button>
+  <div style="height:8px"></div>
+  <button class="ghost" onclick="showTab('reset')">Forgot PIN / got a reset code?</button>
+</section>
+
+<!-- ================ TABS (shown after sign-in) ================ -->
+<nav class="tabs hidden" id="tabsBar">
+  <button data-tab="shop"    onclick="showTab('shop')">Shop</button>
+  <button data-tab="cart"    onclick="showTab('cart')">Cart</button>
+  <button data-tab="orders"  onclick="showTab('orders')">My orders</button>
+  <button data-tab="account" onclick="showTab('account')">Account</button>
+</nav>
+
+<!-- ================ SHOP ================ -->
+<section id="tab-shop" class="hidden">
+  <div class="card">
+    <div class="cats" id="catBar"></div>
+    <div id="productGrid" class="grid"></div>
+  </div>
+</section>
+
+<!-- ================ CART ================ -->
+<section id="tab-cart" class="hidden">
+  <div class="card">
+    <h2>Your cart</h2>
+    <div id="cartLines"></div>
+    <div id="cartEmpty" class="muted">Cart is empty.</div>
+    <div style="height:8px"></div>
+    <label>Notes for admin (optional)</label>
+    <textarea id="orderNotes" placeholder="Delivery instructions, preferences…"></textarea>
+    <div id="cartError" class="error hidden"></div>
+    <div id="cartSuccess" class="success hidden"></div>
+    <div style="height:8px"></div>
+    <button class="primary" id="btnSubmit" onclick="submitOrder()">Submit order</button>
+  </div>
+</section>
+
+<!-- ================ MY ORDERS ================ -->
+<section id="tab-orders" class="hidden">
+  <div class="card">
+    <div class="row">
+      <h2 style="margin:0;flex:1">My orders</h2>
+      <button class="ghost" style="flex:0 0 auto;width:auto" onclick="loadOrders()">Refresh</button>
+    </div>
+    <div id="ordersBox"></div>
+  </div>
+</section>
+
+<!-- ================ ACCOUNT ================ -->
+<section id="tab-account" class="hidden">
+  <div class="card">
+    <h2>Change PIN</h2>
+    <label>Current PIN</label>
+    <input id="pinOld" type="password" inputmode="numeric" maxlength="16">
+    <div style="height:6px"></div>
+    <label>New PIN</label>
+    <input id="pinNew" type="password" inputmode="numeric" maxlength="16">
+    <div style="height:6px"></div>
+    <label>Confirm new PIN</label>
+    <input id="pinNew2" type="password" inputmode="numeric" maxlength="16">
+    <div id="pinError" class="error hidden"></div>
+    <div id="pinSuccess" class="success hidden"></div>
+    <div style="height:10px"></div>
+    <button class="primary" onclick="changePin()">Change PIN</button>
+  </div>
+
+  <div class="card">
+    <h2>Signed in as</h2>
+    <p id="whoAmI" class="muted"></p>
+    <button class="ghost" onclick="signOut()">Sign out</button>
+  </div>
+</section>
+
+<!-- ================ PIN RESET ================ -->
+<section id="tab-reset" class="hidden">
+  <div class="card">
+    <h2>Reset PIN</h2>
+    <p class="muted">
+      Ask the admin to issue a reset code for your phone. Enter the code and
+      choose a new PIN. The admin never sees your PIN.
+    </p>
+    <label>Phone</label>
+    <input id="rPhone" type="tel" inputmode="tel" autocomplete="tel">
+    <div style="height:6px"></div>
+    <label>Reset code</label>
+    <input id="rToken" type="text" autocapitalize="characters" maxlength="16">
+    <div style="height:6px"></div>
+    <label>New PIN</label>
+    <input id="rPin" type="password" inputmode="numeric" maxlength="16">
+    <div style="height:6px"></div>
+    <label>Confirm new PIN</label>
+    <input id="rPin2" type="password" inputmode="numeric" maxlength="16">
+    <div id="rError" class="error hidden"></div>
+    <div id="rSuccess" class="success hidden"></div>
+    <div style="height:10px"></div>
+    <button class="primary" onclick="useResetCode()">Set new PIN</button>
+    <div style="height:6px"></div>
+    <button class="ghost" onclick="showTab('signin')">Back to sign in</button>
+  </div>
+</section>
+
+<!-- ================ PAY ================ -->
+<section id="tab-pay" class="hidden">
+  <div class="card">
+    <h2>Pay for order <span id="payOrderCode"></span></h2>
+    <p class="muted">Total: <b id="payAmount"></b></p>
+    <p class="muted">UPI ID: <code id="payUpi"></code></p>
+
+    <h3>Open in your UPI app</h3>
+    <div class="upi-grid" id="upiButtons"></div>
+
+    <h3>Or scan this QR</h3>
+    <div class="qr-box" id="qrBox"></div>
+
+    <div style="height:10px"></div>
+    <label>Payment reference (optional)</label>
+    <input id="payRef" placeholder="UPI txn id / note">
+    <div style="height:8px"></div>
+    <div class="row">
+      <button class="primary" onclick="claimPaid()">I have paid</button>
+      <button class="ghost" onclick="showTab('orders')">Later</button>
+    </div>
+    <div id="payError" class="error hidden"></div>
+    <div id="paySuccess" class="success hidden"></div>
+  </div>
+</section>
+
+</div><!-- /.app -->
+
+<!-- ================ CART BAR ================ -->
+<div id="cartBar" class="cartbar hidden">
+  <span class="total" id="cartBarTotal">₹0</span>
+  <button class="primary" onclick="showTab('cart')">View cart</button>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+ * Config — replace with your Worker URL after deploy
+ * ------------------------------------------------------------- */
+const CONFIG = {
+  API_BASE: 'https://generic-order-api.YOUR-SUBDOMAIN.workers.dev',
+  STORE_NAME: 'Order',
+  ADMIN_ENABLED: false
+};
+
+/* ---------------------------------------------------------------
+ * State
+ * ------------------------------------------------------------- */
+const state = {
+  phone: '',
+  pin: '',
+  settings: {},
+  categories: [],
+  products: [],
+  activeCatId: null,
+  cart: {},           // productId -> qty
+  orders: [],
+  payContext: null    // { order, upiUrl }
+};
+
+function $(id) { return document.getElementById(id); }
+function show(id) { $(id).classList.remove('hidden'); }
+function hide(id) { $(id).classList.add('hidden'); }
+
+/* ---------------------------------------------------------------
+ * Fetch helpers
+ * ------------------------------------------------------------- */
+async function apiGet(path, params = {}) {
+  const q = new URLSearchParams(params).toString();
+  const url = CONFIG.API_BASE + path + (q ? '?' + q : '');
+  const r = await fetch(url, { method: 'GET' });
+  const j = await r.json().catch(() => ({ ok: false, error: 'Bad JSON' }));
+  if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+async function apiPost(path, body) {
+  const r = await fetch(CONFIG.API_BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  });
+  const j = await r.json().catch(() => ({ ok: false, error: 'Bad JSON' }));
+  if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+
+/* ---------------------------------------------------------------
+ * Tabs
+ * ------------------------------------------------------------- */
+function showTab(name) {
+  const tabs = ['shop','cart','orders','account','reset','pay','signin'];
+  for (const t of tabs) {
+    const el = $('tab-' + t);
+    if (el) el.classList.add('hidden');
+  }
+  if (name === 'signin') {
+    show('signIn');
+    hide('tabsBar'); hide('cartBar');
+    return;
+  }
+  hide('signIn');
+  if (name === 'reset') { show('tab-reset'); hide('tabsBar'); hide('cartBar'); return; }
+
+  show('tabsBar');
+  for (const btn of document.querySelectorAll('.tabs button')) {
+    btn.classList.toggle('active', btn.dataset.tab === name);
+  }
+  const id = 'tab-' + name;
+  if ($(id)) show(id);
+
+  if (name === 'shop')    renderProducts();
+  if (name === 'cart')    renderCart();
+  if (name === 'orders')  loadOrders();
+  if (name === 'account') renderAccount();
+  if (name === 'pay')     {}
+
+  updateCartBar();
+}
+
+/* ---------------------------------------------------------------
+ * Init
+ * ------------------------------------------------------------- */
+async function init() {
+  // try to restore session
+  const saved = localStorage.getItem('session');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      if (s.phone && s.pin) {
+        state.phone = s.phone; state.pin = s.pin;
+        await afterSignIn(/*silent*/true);
+        return;
+      }
+    } catch (_) {}
+  }
+  await loadPublicSettings();
+  showTab('signin');
+}
+
+async function loadPublicSettings() {
+  try {
+    const j = await apiGet('/api/settings');
+    state.settings = j.settings || {};
+    $('storeName').textContent = state.settings.store_name || 'Order';
+    $('storeTagline').textContent = state.settings.store_tagline || '';
+    document.title = state.settings.store_name || 'Order';
+  } catch (e) {
+    $('storeTagline').textContent = 'Could not reach server.';
+    console.error(e);
+  }
+}
+
+/* ---------------------------------------------------------------
+ * Sign in / out
+ * ------------------------------------------------------------- */
+async function doSignIn() {
+  $('signInError').classList.add('hidden');
+  const phone = $('inpPhone').value.trim();
+  const pin   = $('inpPin').value.trim();
+  if (!phone || !pin) {
+    return showSignInError('Phone and PIN required.');
+  }
+  try {
+    await apiGet('/api/verify', { phone, pin });
+    state.phone = phone; state.pin = pin;
+    localStorage.setItem('session', JSON.stringify({ phone, pin }));
+    await afterSignIn();
+  } catch (e) {
+    showSignInError(e.message || 'Sign-in failed.');
+  }
+}
+
+function showSignInError(msg) {
+  const el = $('signInError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+async function afterSignIn(silent) {
+  await loadPublicSettings();
+  await loadMenu();
+  showTab('shop');
+  if (!silent) {
+    // focus on products
+  }
+}
+
+function signOut() {
+  localStorage.removeItem('session');
+  state.phone = ''; state.pin = ''; state.cart = {};
+  showTab('signin');
+}
+
+/* ---------------------------------------------------------------
+ * Menu / products
+ * ------------------------------------------------------------- */
+async function loadMenu() {
+  try {
+    const j = await apiGet('/api/menu');
+    state.categories = j.categories || [];
+    state.products = (j.products || []).filter(p => p.in_stock !== 0 || true); // keep OOS visible but mark
+    if (state.categories.length && !state.activeCatId) {
+      state.activeCatId = state.categories[0].id;
+    }
+  } catch (e) {
+    console.error('menu load', e);
+  }
+}
+
+function renderProducts() {
+  const catBar = $('catBar');
+  catBar.innerHTML = '';
+  for (const c of state.categories) {
+    const b = document.createElement('button');
+    b.textContent = (c.emoji ? c.emoji + ' ' : '') + c.name;
+    if (c.id === state.activeCatId) b.classList.add('active');
+    b.onclick = () => { state.activeCatId = c.id; renderProducts(); };
+    catBar.appendChild(b);
+  }
+
+  const grid = $('productGrid'); grid.innerHTML = '';
+  const prods = state.products.filter(p => p.category_id === state.activeCatId);
+  if (!prods.length) {
+    grid.innerHTML = '<p class="muted">No products in this category yet.</p>';
+    return;
+  }
+  for (const p of prods) {
+    const card = document.createElement('div');
+    card.className = 'prod';
+    const priceText = fmtMoney(p.price) + ' / ' + (p.unit || 'each');
+    card.innerHTML = `
+      <div class="img">${p.image_url
+        ? `<img src="${escAttr(p.image_url)}" alt="${escAttr(p.name)}" loading="lazy">`
+        : '🛒'}</div>
+      <div class="name">${escHtml(p.name)}</div>
+      <div class="price"><b>${escHtml(priceText)}</b></div>
+      ${p.in_stock ? '' : '<div class="oos">Out of stock</div>'}
+    `;
+    const qtyRow = document.createElement('div'); qtyRow.className = 'qty';
+    const dec = document.createElement('button'); dec.textContent = '−';
+    const inp = document.createElement('input'); inp.type = 'number'; inp.min = '0'; inp.step = '0.25';
+    inp.value = state.cart[p.id] || 0;
+    const inc = document.createElement('button'); inc.textContent = '+';
+    dec.onclick = () => { setQty(p.id, Math.max(0, (Number(inp.value) || 0) - 1)); inp.value = state.cart[p.id] || 0; };
+    inc.onclick = () => { setQty(p.id, (Number(inp.value) || 0) + 1); inp.value = state.cart[p.id] || 0; };
+    inp.onchange = () => setQty(p.id, Number(inp.value) || 0);
+    if (!p.in_stock) { dec.disabled = inc.disabled = inp.disabled = true; }
+    qtyRow.appendChild(dec); qtyRow.appendChild(inp); qtyRow.appendChild(inc);
+    card.appendChild(qtyRow);
+    grid.appendChild(card);
+  }
+  updateCartBar();
+}
+
+function setQty(productId, q) {
+  if (!q || q <= 0) delete state.cart[productId];
+  else state.cart[productId] = q;
+  updateCartBar();
+}
+
+function cartLines() {
+  const lines = [];
+  let total = 0;
+  for (const [pidStr, qty] of Object.entries(state.cart)) {
+    const p = state.products.find(x => x.id == pidStr);
+    if (!p) continue;
+    const line = Math.round(qty * p.price * 100) / 100;
+    total += line;
+    lines.push({ product: p, qty, line });
+  }
+  total = Math.round(total * 100) / 100;
+  return { lines, total };
+}
+
+function updateCartBar() {
+  const { lines, total } = cartLines();
+  if (!lines.length) { hide('cartBar'); return; }
+  if (state.phone) show('cartBar');
+  $('cartBarTotal').textContent = fmtMoney(total) + '  ·  ' + lines.length + ' item' + (lines.length === 1 ? '' : 's');
+}
+
+function renderCart() {
+  const { lines, total } = cartLines();
+  const box = $('cartLines');
+  box.innerHTML = '';
+  if (!lines.length) { show('cartEmpty'); $('btnSubmit').disabled = true; return; }
+  hide('cartEmpty'); $('btnSubmit').disabled = false;
+  for (const l of lines) {
+    const row = document.createElement('div'); row.className = 'line';
+    row.innerHTML = `
+      <span class="n">${escHtml(l.product.name)}</span>
+      <span class="q">${l.qty} ${escHtml(l.product.unit || '')}</span>
+      <span class="p">${escHtml(fmtMoney(l.line))}</span>`;
+    box.appendChild(row);
+  }
+  const tot = document.createElement('div'); tot.className = 'line';
+  tot.innerHTML = `<span class="n"><b>Total</b></span><span class="q"></span><span class="p"><b>${escHtml(fmtMoney(total))}</b></span>`;
+  box.appendChild(tot);
+}
+
+/* ---------------------------------------------------------------
+ * Submit order
+ * ------------------------------------------------------------- */
+async function submitOrder() {
+  hide('cartError'); hide('cartSuccess');
+  const { lines, total } = cartLines();
+  if (!lines.length) return;
+
+  const btn = $('btnSubmit'); btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    // Pre-verify so we surface phone/pin problems clearly
+    await apiGet('/api/verify', { phone: state.phone, pin: state.pin });
+
+    const body = {
+      phone: state.phone,
+      pin: state.pin,
+      notes: $('orderNotes').value.trim(),
+      items: lines.map(l => ({ product_id: l.product.id, quantity: l.qty }))
+    };
+    const j = await apiPost('/api/orders', body);
+    state.cart = {};
+    $('orderNotes').value = '';
+    $('cartSuccess').textContent = 'Order ' + j.order.order_code + ' placed. Total ' + fmtMoney(j.order.total_amount);
+    show('cartSuccess');
+    updateCartBar();
+    // Offer to pay now if UPI is configured
+    if (state.settings.upi_id) {
+      openPayFor(j.order);
+    }
+  } catch (e) {
+    $('cartError').textContent = 'Could not place order: ' + (e.message || e);
+    show('cartError');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Submit order';
+  }
+}
+
+/* ---------------------------------------------------------------
+ * Orders list
+ * ------------------------------------------------------------- */
+async function loadOrders() {
+  const box = $('ordersBox');
+  box.innerHTML = '<p class="muted">Loading…</p>';
+  try {
+    const j = await apiGet('/api/orders', { phone: state.phone, pin: state.pin });
+    state.orders = j.orders || [];
+    if (!state.orders.length) { box.innerHTML = '<p class="muted">No orders yet.</p>'; return; }
+    box.innerHTML = '';
+    for (const o of state.orders) box.appendChild(renderOrderCard(o));
+  } catch (e) {
+    box.innerHTML = '<div class="error">' + escHtml(e.message) + '</div>';
+  }
+}
+
+function renderOrderCard(o) {
+  const wrap = document.createElement('div');
+  wrap.className = 'card';
+  const statusCls = o.order_status === 'cancelled' ? 'status-cancelled'
+                  : (o.payment_status === 'paid' ? 'status-paid' : '');
+  const header = `
+    <div class="row">
+      <h3 style="margin:0;flex:1">Order ${escHtml(o.order_code)}</h3>
+      <span class="status-pill ${statusCls}">${escHtml(o.order_status)} · ${escHtml(o.payment_status)}</span>
+    </div>
+    <p class="muted" style="margin:4px 0">${escHtml(fmtDate(o.created_at))} · ${escHtml(fmtMoney(o.total_amount))}</p>`;
+  let body = '';
+  for (const it of (o.items || [])) {
+    body += `<div class="line"><span class="n">${escHtml(it.product_name)}</span><span class="q">${it.quantity} ${escHtml(it.unit || '')}</span><span class="p">${escHtml(fmtMoney(it.line_total))}</span></div>`;
+  }
+  const actions = [];
+  if (o.order_status !== 'cancelled' && o.order_status !== 'delivered') {
+    if (o.payment_status !== 'paid' && state.settings.upi_id) {
+      actions.push(`<button class="primary" onclick="openPayById(${o.id})">Pay now</button>`);
+    }
+    actions.push(`<button class="ghost" onclick="doCancel(${o.id})">Cancel</button>`);
+    actions.push(`<button class="ghost" onclick="whatsappOrder(${o.id})">WhatsApp admin</button>`);
+  }
+  wrap.innerHTML = header + body + (actions.length ? '<div class="row" style="margin-top:8px">' + actions.join('') + '</div>' : '');
+  return wrap;
+}
+
+function openPayById(id) {
+  const o = state.orders.find(x => x.id === id);
+  if (o) openPayFor(o);
+}
+
+async function doCancel(id) {
+  if (!confirm('Cancel this order?')) return;
+  try {
+    await apiPost('/api/cancel', { phone: state.phone, pin: state.pin, order_id: id });
+    await loadOrders();
+  } catch (e) { alert('Could not cancel: ' + e.message); }
+}
+
+function whatsappOrder(id) {
+  const o = state.orders.find(x => x.id === id);
+  if (!o) return;
+  const adminPhone = (state.settings.admin_phone || '').replace(/[^\d]/g, '');
+  const lines = (o.items || []).map(it => `• ${it.product_name} — ${it.quantity} ${it.unit || ''} = ${fmtMoney(it.line_total)}`);
+  const msg = `Order ${o.order_code}\n` +
+              `${state.settings.store_name || ''}\n\n` +
+              lines.join('\n') + '\n\n' +
+              `Total: ${fmtMoney(o.total_amount)}\n` +
+              `Status: ${o.order_status} (${o.payment_status})`;
+  const url = (adminPhone ? `https://wa.me/${adminPhone}?text=` : `https://wa.me/?text=`) + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+/* ---------------------------------------------------------------
+ * Pay
+ * ------------------------------------------------------------- */
+const UPI_APPS = [
+  { id: 'gpay',    name: 'Google Pay', color: '#2DA94F', scheme: 'tez://upi/pay' },
+  { id: 'phonepe', name: 'PhonePe',    color: '#5f259f', scheme: 'phonepe://pay' },
+  { id: 'paytm',   name: 'Paytm',      color: '#00BAF2', scheme: 'paytmmp://pay' },
+  { id: 'upi',     name: 'Other UPI',  color: '#555',    scheme: 'upi://pay' }
+];
+
+function buildUpiUrl(scheme, o) {
+  const pa = encodeURIComponent(state.settings.upi_id || '');
+  const pn = encodeURIComponent(state.settings.upi_payee_name || state.settings.store_name || 'Store');
+  const am = encodeURIComponent(Number(o.total_amount).toFixed(2));
+  const tn = encodeURIComponent('Order ' + o.order_code);
+  return `${scheme}?pa=${pa}&pn=${pn}&am=${am}&cu=INR&tn=${tn}`;
+}
+
+function openPayFor(order) {
+  state.payContext = { order };
+  $('payOrderCode').textContent = order.order_code;
+  $('payAmount').textContent = fmtMoney(order.total_amount);
+  $('payUpi').textContent = state.settings.upi_id || '(not configured)';
+
+  const box = $('upiButtons'); box.innerHTML = '';
+  for (const app of UPI_APPS) {
+    const a = document.createElement('a');
+    a.href = buildUpiUrl(app.scheme, order);
+    a.textContent = app.name;
+    a.style.background = app.color;
+    box.appendChild(a);
+  }
+  // QR for generic upi url
+  const qrUrl = buildUpiUrl('upi://pay', order);
+  $('qrBox').innerHTML = '';
+  $('qrBox').appendChild(QR.toSvg(qrUrl, 220));
+  hide('payError'); hide('paySuccess');
+  showTab('pay');
+}
+
+async function claimPaid() {
+  if (!state.payContext) return;
+  hide('payError'); hide('paySuccess');
+  try {
+    await apiPost('/api/payment', {
+      phone: state.phone, pin: state.pin,
+      order_id: state.payContext.order.id,
+      payment_method: 'upi',
+      payment_ref: $('payRef').value.trim()
+    });
+    $('paySuccess').textContent = 'Thanks! Marked as paid. Admin will confirm.';
+    show('paySuccess');
+    setTimeout(() => { loadOrders(); showTab('orders'); }, 1200);
+  } catch (e) {
+    $('payError').textContent = 'Could not update: ' + e.message;
+    show('payError');
+  }
+}
+
+/* ---------------------------------------------------------------
+ * Account: change PIN
+ * ------------------------------------------------------------- */
+function renderAccount() {
+  $('whoAmI').textContent = state.phone;
+}
+
+async function changePin() {
+  hide('pinError'); hide('pinSuccess');
+  const oldPin = $('pinOld').value.trim();
+  const newPin = $('pinNew').value.trim();
+  const newPin2 = $('pinNew2').value.trim();
+  if (!oldPin || !newPin) { $('pinError').textContent = 'Fill all fields.'; show('pinError'); return; }
+  if (newPin.length < 4) { $('pinError').textContent = 'PIN must be at least 4 chars.'; show('pinError'); return; }
+  if (newPin !== newPin2) { $('pinError').textContent = 'New PINs do not match.'; show('pinError'); return; }
+  try {
+    // Pre-verify old PIN so we can surface wrong-PIN errors cleanly
+    await apiGet('/api/verify', { phone: state.phone, pin: oldPin });
+    await apiPost('/api/pin-change', { phone: state.phone, old_pin: oldPin, new_pin: newPin });
+    state.pin = newPin;
+    localStorage.setItem('session', JSON.stringify({ phone: state.phone, pin: newPin }));
+    $('pinSuccess').textContent = 'PIN changed.';
+    show('pinSuccess');
+    $('pinOld').value = $('pinNew').value = $('pinNew2').value = '';
+  } catch (e) {
+    $('pinError').textContent = e.message || 'Could not change PIN.'; show('pinError');
+  }
+}
+
+/* ---------------------------------------------------------------
+ * Reset PIN via admin-issued code
+ * ------------------------------------------------------------- */
+async function useResetCode() {
+  hide('rError'); hide('rSuccess');
+  const phone = $('rPhone').value.trim();
+  const tok   = $('rToken').value.trim().toUpperCase();
+  const pin   = $('rPin').value.trim();
+  const pin2  = $('rPin2').value.trim();
+  if (!phone || !tok || !pin) { $('rError').textContent = 'All fields required.'; show('rError'); return; }
+  if (pin.length < 4) { $('rError').textContent = 'PIN must be at least 4 chars.'; show('rError'); return; }
+  if (pin !== pin2) { $('rError').textContent = 'PINs do not match.'; show('rError'); return; }
+  try {
+    await apiPost('/api/pin-reset', { phone, reset_token: tok, new_pin: pin });
+    $('rSuccess').textContent = 'PIN set. You can now sign in.';
+    show('rSuccess');
+    $('rPhone').value = $('rToken').value = $('rPin').value = $('rPin2').value = '';
+    setTimeout(() => showTab('signin'), 1500);
+  } catch (e) {
+    $('rError').textContent = e.message || 'Reset failed.'; show('rError');
+  }
+}
+
+/* ---------------------------------------------------------------
+ * Formatters
+ * ------------------------------------------------------------- */
+function fmtMoney(n) {
+  const sym = state.settings.currency_symbol || '₹';
+  return sym + Number(n || 0).toFixed(2);
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso.replace(' ', 'T') + 'Z');
+  if (isNaN(d)) return iso;
+  return d.toLocaleString();
+}
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+function escAttr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+/* =================================================================
+ * Self-contained QR generator (Byte mode, EC level L, versions 1-10,
+ * mask 0). Draws as SVG.
+ * ===============================================================*/
+const QR = (function() {
+  const GF = (function() {
+    const EXP = new Array(512), LOG = new Array(256);
+    let x = 1;
+    for (let i = 0; i < 255; i++) {
+      EXP[i] = x;
+      LOG[x] = i;
+      x <<= 1;
+      if (x & 0x100) x ^= 0x11d;
+    }
+    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+    function mul(a, b) { return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+    return { EXP, LOG, mul };
+  })();
+
+  // Number of EC codewords per version at EC level L
+  // (versions 1..10)
+  const EC_L = [7,10,15,20,26,18,20,24,30,18];
+  // Total codewords per version at level L
+  const TOTAL_CW_L = [19,34,55,80,108,136,156,194,232,274];
+
+  function computeECC(data, ecLen) {
+    // Generator polynomial
+    let gen = [1];
+    for (let i = 0; i < ecLen; i++) {
+      const ng = new Array(gen.length + 1).fill(0);
+      for (let j = 0; j < gen.length; j++) {
+        ng[j] ^= gen[j];
+        ng[j + 1] ^= GF.mul(gen[j], GF.EXP[i]);
+      }
+      gen = ng;
+    }
+    // Polynomial division
+    const buf = data.slice().concat(new Array(ecLen).fill(0));
+    for (let i = 0; i < data.length; i++) {
+      const coef = buf[i];
+      if (coef !== 0) {
+        for (let j = 0; j < gen.length; j++) {
+          buf[i + j] ^= GF.mul(gen[j], coef);
+        }
+      }
+    }
+    return buf.slice(data.length);
+  }
+
+  // Version sizes
+  function size(version) { return 17 + version * 4; }
+
+  // Pick smallest version that fits data (byte mode, level L)
+  function pickVersion(dataBytes) {
+    // Data capacity in bytes for byte mode EC L (versions 1..10)
+    const CAP = [17,32,53,78,106,134,154,192,230,271];
+    for (let v = 1; v <= 10; v++) if (dataBytes.length <= CAP[v - 1]) return v;
+    throw new Error('QR: data too long for version<=10');
+  }
+
+  // Encode bytes with byte-mode header, return array of codewords
+  function encodeData(bytes, version) {
+    const bits = [];
+    const push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+    push(0b0100, 4); // Byte mode
+    const lenBits = version < 10 ? 8 : 16;
+    push(bytes.length, lenBits);
+    for (const b of bytes) push(b, 8);
+    // Terminator (up to 4 zero bits)
+    const totalBits = TOTAL_CW_L[version - 1] * 8;
+    const dataBits = (TOTAL_CW_L[version - 1] - EC_L[version - 1]) * 8;
+    for (let i = 0; i < 4 && bits.length < dataBits; i++) bits.push(0);
+    while (bits.length % 8 !== 0) bits.push(0);
+    // Pad codewords
+    const pad = [0xEC, 0x11];
+    let pi = 0;
+    while (bits.length / 8 < (TOTAL_CW_L[version - 1] - EC_L[version - 1])) {
+      const p = pad[pi++ % 2];
+      push(p, 8);
+    }
+    // Convert to bytes
+    const cw = [];
+    for (let i = 0; i < bits.length; i += 8) {
+      let b = 0;
+      for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+      cw.push(b);
+    }
+    return cw;
+  }
+
+  function placeModules(matrix, version, fullBits) {
+    const N = size(version);
+    // Initialise reserved matrix for fixed patterns
+    const reserved = Array.from({ length: N }, () => new Array(N).fill(false));
+
+    function drawFinder(r, c) {
+      for (let dr = -1; dr <= 7; dr++) {
+        for (let dc = -1; dc <= 7; dc++) {
+          const rr = r + dr, cc = c + dc;
+          if (rr < 0 || cc < 0 || rr >= N || cc >= N) continue;
+          const on = (dr >= 0 && dr <= 6 && (dc === 0 || dc === 6)) ||
+                     (dc >= 0 && dc <= 6 && (dr === 0 || dr === 6)) ||
+                     (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4);
+          matrix[rr][cc] = on ? 1 : 0;
+          reserved[rr][cc] = true;
+        }
+      }
+    }
+    drawFinder(0, 0);
+    drawFinder(0, N - 7);
+    drawFinder(N - 7, 0);
+
+    // Alignment patterns (versions >= 2)
+    const ALIGN_POS = [
+      [], [6,18], [6,22], [6,26], [6,30],
+      [6,34], [6,22,38], [6,24,42], [6,26,46], [6,28,50]
+    ];
+    if (version >= 2) {
+      const positions = ALIGN_POS[version - 1];
+      for (const r of positions) for (const c of positions) {
+        if ((r === 6 && c === 6) || (r === 6 && c === N - 7) || (r === N - 7 && c === 6)) continue;
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+          const rr = r + dr, cc = c + dc;
+          const on = (Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
+          matrix[rr][cc] = on ? 1 : 0;
+          reserved[rr][cc] = true;
+        }
+      }
+    }
+
+    // Timing patterns
+    for (let i = 8; i < N - 8; i++) {
+      if (!reserved[6][i]) { matrix[6][i] = (i % 2 === 0) ? 1 : 0; reserved[6][i] = true; }
+      if (!reserved[i][6]) { matrix[i][6] = (i % 2 === 0) ? 1 : 0; reserved[i][6] = true; }
+    }
+
+    // Dark module
+    matrix[4 * version + 9][8] = 1; reserved[4 * version + 9][8] = true;
+
+    // Reserve format info areas
+    for (let i = 0; i <= 8; i++) { reserved[8][i] = true; reserved[i][8] = true; }
+    for (let i = 0; i < 8; i++) { reserved[N - 1 - i][8] = true; reserved[8][N - 1 - i] = true; }
+
+    // Place data bits in zig-zag
+    let bitIdx = 0;
+    let upward = true;
+    for (let col = N - 1; col > 0; col -= 2) {
+      if (col === 6) col--; // skip timing col
+      for (let i = 0; i < N; i++) {
+        const r = upward ? N - 1 - i : i;
+        for (let c = 0; c < 2; c++) {
+          const cc = col - c;
+          if (!reserved[r][cc]) {
+            const bit = bitIdx < fullBits.length ? fullBits[bitIdx++] : 0;
+            matrix[r][cc] = bit;
+          }
+        }
+      }
+      upward = !upward;
+    }
+
+    // Mask 0 : (r + c) mod 2 == 0
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (reserved[r][c]) continue;
+      if ((r + c) % 2 === 0) matrix[r][c] = matrix[r][c] ^ 1;
+    }
+
+    // Format info (EC L, mask 0) - precomputed 15-bit string
+    const fmt = [1,1,1,0,1,1,1,1,1,0,0,0,1,0,0];
+    // Around top-left finder
+    for (let i = 0; i < 6; i++)   matrix[8][i]           = fmt[i];
+    matrix[8][7]  = fmt[6];
+    matrix[8][8]  = fmt[7];
+    matrix[7][8]  = fmt[8];
+    for (let i = 9; i < 15; i++)  matrix[14 - i][8]      = fmt[i];
+    // Around top-right & bottom-left
+    for (let i = 0; i < 8; i++)   matrix[N - 1 - i][8]   = fmt[i];
+    for (let i = 8; i < 15; i++)  matrix[8][N - 15 + i]  = fmt[i];
+  }
+
+  function encode(text) {
+    // UTF-8 encode
+    const bytes = Array.from(new TextEncoder().encode(text));
+    const version = pickVersion(bytes);
+    const N = size(version);
+
+    const dataCw = encodeData(bytes, version);
+    const ecCw = computeECC(dataCw, EC_L[version - 1]);
+    const all = dataCw.concat(ecCw);
+    const bits = [];
+    for (const b of all) for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1);
+
+    const matrix = Array.from({ length: N }, () => new Array(N).fill(0));
+    placeModules(matrix, version, bits);
+    return { version, size: N, matrix };
+  }
+
+  function toSvg(text, pxSize) {
+    const { size: N, matrix } = encode(text);
+    const scale = Math.max(1, Math.floor(pxSize / N));
+    const box = N * scale;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${N} ${N}`);
+    svg.setAttribute('shape-rendering', 'crispEdges');
+    const bg = document.createElementNS(svgNS, 'rect');
+    bg.setAttribute('width', N); bg.setAttribute('height', N); bg.setAttribute('fill', '#fff');
+    svg.appendChild(bg);
+    let d = '';
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (matrix[r][c]) d += `M${c} ${r}h1v1h-1z`;
+    }
+    const p = document.createElementNS(svgNS, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', '#000');
+    svg.appendChild(p);
+    return svg;
+  }
+
+  return { encode, toSvg };
+})();
+
+/* ---------------------------------------------------------------
+ * Go
+ * ------------------------------------------------------------- */
+init();
+</script>
+</body>
+</html>
