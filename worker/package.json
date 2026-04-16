@@ -1,1 +1,16 @@
-
+{
+  "name": "generic-order-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker backend (D1 + R2) for the generic product ordering app",
+  "scripts": {
+    "dev":       "wrangler dev",
+    "deploy":    "wrangler deploy",
+    "schema:local":  "wrangler d1 execute generic_order --local  --file=../schema/schema.sql",
+    "schema:remote": "wrangler d1 execute generic_order --remote --file=../schema/schema.sql",
+    "tail":      "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}

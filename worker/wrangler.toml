@@ -1,0 +1,35 @@
+# =====================================================================
+# Cloudflare Worker config for the Generic Order API
+# ---------------------------------------------------------------------
+# 1. Install wrangler:         npm i -g wrangler
+# 2. Login:                    wrangler login
+# 3. Create D1:                wrangler d1 create generic_order
+#    - paste returned database_id below
+# 4. Create R2 bucket:         wrangler r2 bucket create generic-order-images
+# 5. Apply schema:             wrangler d1 execute generic_order --remote --file=../schema/schema.sql
+# 6. Set secrets:              wrangler secret put ADMIN_API_TOKEN
+# 7. Deploy:                   wrangler deploy
+# =====================================================================
+name = "generic-order-api"
+main = "worker.js"
+compatibility_date = "2025-04-01"
+
+# Public env vars (non-secret)
+[vars]
+# If you serve product images through a custom domain or Cloudflare R2 public
+# access, put the base URL here. Leave blank to use the Worker's /img/ route.
+IMAGES_PUBLIC_BASE = ""
+
+# --- D1 database binding ---
+[[d1_databases]]
+binding = "DB"
+database_name = "generic_order"
+database_id   = "837c5d4e-9313-466a-994e-b2a4bf61b56c"
+
+# --- R2 bucket binding (product images) ---
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "generic-order-images"
+
+# NOTE: ADMIN_API_TOKEN is set as a *secret*, not here:
+#   wrangler secret put ADMIN_API_TOKEN
